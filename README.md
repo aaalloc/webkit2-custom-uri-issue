@@ -1,6 +1,7 @@
 Needs webkit2 and gtk header
 
 ```
+# PKG_CONFIG_PATH=../WebKit/build/Source/WebKit:$PKG_CONFIG_PATH: meson setup build
 $ meson build
 $ cd build
 $ ninja
