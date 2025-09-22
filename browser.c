@@ -11,39 +11,49 @@ static gboolean close_web_cb(WebKitWebView *webView, GtkWidget *window)
 
 static void uri_scheme_request_cb(WebKitURISchemeRequest *request, gpointer user_data)
 {
-    char *scheme = (char *)webkit_uri_scheme_request_get_scheme(request);
-    puts(scheme);
-    char *path = (char *)user_data;
+    // display requested scheme and path
+    printf("file name: %s\n", webkit_uri_scheme_request_get_uri(request));
+    char *path = (char *)webkit_uri_scheme_request_get_path(request);
+    if (path == NULL)
+    {
+        g_error("something is wrong, user_data should be NULL\n");
+        return;
+    }
     GFile *file;
     GFileInputStream *stream;
     GError *err = NULL;
     gsize stream_length;
 
     file = g_file_new_for_path(path);
-    stream = g_file_read(file, NULL, &err);
+    if (file == NULL)
+    {
+        g_error("Could not create file for path %s\n", path);
+        return;
+    }
 
+    stream = g_file_read(file, NULL, &err);
     if (err == NULL)
     {
-        GFileInfo *file_info = g_file_query_info(file, G_FILE_ATTRIBUTE_STANDARD_SIZE, 0, NULL, &err);
+        GFileInfo *file_info = g_file_query_info(file, "standard::*",
+                                                 G_FILE_QUERY_INFO_NONE, NULL, &err);
         if (file_info != NULL)
-        {
             stream_length = g_file_info_get_size(file_info);
-            g_object_unref(file_info);
-        }
         else
         {
             g_error("Could not get file info: %s\n", err->message);
             g_error_free(err);
             return;
         }
+        puts((char *)webkit_uri_scheme_request_get_path(request));
 
-        webkit_uri_scheme_request_finish(request, G_INPUT_STREAM(stream), stream_length, "audio/mp3");
+        webkit_uri_scheme_request_finish(request, G_INPUT_STREAM(stream), stream_length, g_file_info_get_content_type(file_info));
         g_object_unref(stream);
+        g_object_unref(file_info);
     }
     else
     {
-        g_error("Could not open %s for reading: %s\n", path, err->message);
-        g_error_free(err);
+        webkit_uri_scheme_request_finish_error (request, err);
+        g_error_free (err);
     }
 }
 
@@ -58,11 +68,12 @@ int main(int argc, char *argv[])
     audio_path = argv[1];
 
     gtk_init(&argc, &argv);
-    gchar *url = "custom://test.mp3"; // Change the URL to reflect audio
+    gchar *url = g_strdup_printf("custom://%s", audio_path);
+
     WebKitWebContext *ctx;
     ctx = webkit_web_context_new();
     webkit_web_context_register_uri_scheme(ctx, "custom", (WebKitURISchemeRequestCallback)uri_scheme_request_cb,
-                                           audio_path, NULL);
+                                           NULL, NULL);
 
     GtkWidget *win;
     WebKitWebView *web;
