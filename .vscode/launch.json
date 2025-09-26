@@ -1,0 +1,44 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    // {
+    //   "name": "Debug GTK/Webkit/Gstreamer",
+    //   "type": "cppdbg",
+    //   "request": "launch",
+    //   // GST_DEBUG=1 WEBKIT_DISABLE_DMABUF_RENDERER=1
+    //   "environment": [{"name": "GST_DEBUG", "value": "1"}, {"name": "WEBKIT_DISABLE_DMABUF_RENDERER", "value": "1"}],
+    //   "program": "${workspaceFolder}/build/browse", 
+    //   "args": ["assets", "/home/yanovskyy/Documents/projects/gtkbrowser/1900.mp3"],
+    //   "cwd": "${workspaceFolder}",
+    //   "MIMode": "gdb",
+    //   "miDebuggerPath": "/usr/bin/gdb",
+    //   "setupCommands": [
+    //     // {
+    //     //   "description": "Set GDB options",
+    //     //   "text": "-interpreter-exec console \"set follow-fork-mode child\"",
+    //     // },
+    //     // {
+    //     //   "description": "Set GDB options",
+    //     //   "text": "-interpreter-exec console \"set detach-on-fork off\"",
+    //     // },
+    //     {
+    //       "description": "Set GDB options",
+    //       "text": "-interpreter-exec console \"b MediaPlayerPrivateGStreamer.cpp:handleMessage\"",
+    //     }
+    //   ],
+    //   "externalConsole": true,
+    //   "stopAtEntry": false,
+    // },
+    {
+      "name": "Attach to PID Webkit",
+      "type": "lldb-dap",
+      "request": "attach",
+      "program": "${workspaceFolder}/build/browse",
+      "pid": 91058,
+      "postRunCommands": [
+        "target symbols add /home/yanovskyy/Documents/builds/gstreamer-1.26.6/builddir/subprojects/gst-plugins-base/gst/playback/libgstplayback.so"
+      ]
+    }
+  ]
+}
+

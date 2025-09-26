@@ -3,6 +3,15 @@
         "*.tsx": "typescriptreact",
         "*.y": "yacc",
         "*.sh": "jinja-shell",
-        "gtk.h": "c"
-    }
+        "*.j2": "ansible-jinja",
+        "gtk.h": "c",
+        "gstpushsrc.h": "c",
+        "gstcheck.h": "c",
+        "gst.h": "c",
+        "glib.h": "c",
+        "garray.h": "c",
+        "galloca.h": "c"
+    },
+    "C_Cpp.default.compileCommands": "/home/yanovskyy/Documents/projects/gtkbrowser/builddir/compile_commands.json",
+    "C_Cpp.default.configurationProvider": "mesonbuild.mesonbuild"
 }

@@ -59,20 +59,22 @@ static void uri_scheme_request_cb(WebKitURISchemeRequest *request, gpointer user
 
 int main(int argc, char *argv[])
 {
-    char *audio_path = NULL;
-    if (argc < 2)
+    char *audio_path , *protocol = NULL;
+    if (argc < 3)
     {
-        printf("Usage: %s <audio file>\n", argv[0]);
+        printf("Usage: %s <protocol> <audio file>\n", argv[0]);
         return 1;
     }
-    audio_path = argv[1];
+
+    protocol = argv[1];
+    audio_path = argv[2];
 
     gtk_init(&argc, &argv);
-    gchar *url = g_strdup_printf("custom://%s", audio_path);
+    gchar *url = g_strdup_printf("%s://%s", protocol, audio_path);
 
     WebKitWebContext *ctx;
     ctx = webkit_web_context_new();
-    webkit_web_context_register_uri_scheme(ctx, "custom", (WebKitURISchemeRequestCallback)uri_scheme_request_cb,
+    webkit_web_context_register_uri_scheme(ctx, protocol, (WebKitURISchemeRequestCallback)uri_scheme_request_cb,
                                            NULL, NULL);
 
     GtkWidget *win;
@@ -91,7 +93,8 @@ int main(int argc, char *argv[])
     g_signal_connect(win, "destroy", G_CALLBACK(destroy_win_cb), NULL);
     g_signal_connect(web, "close", G_CALLBACK(close_web_cb), win);
 
-    webkit_web_view_load_uri(web, url);
+    // webkit_web_view_load_uri(web, url);
+    webkit_web_view_load_uri(web, "file:///home/yanovskyy/Documents/projects/gtkbrowser/index.html");
 
     gtk_widget_grab_focus(GTK_WIDGET(web));
     gtk_widget_show_all(win);
