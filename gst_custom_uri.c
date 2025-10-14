@@ -1,5 +1,6 @@
 #include <gst/check/gstcheck.h>
 #include <gst/base/gstpushsrc.h>
+#include <gst/gst.h>
 
 // https://gstreamer.freedesktop.org/documentation/tutorials/basic/dynamic-pipelines.html?gi-language=c
 
@@ -22,15 +23,32 @@ gst_assets_video_src_uri_get_protocols (GType type)
 static gchar *
 gst_assets_video_src_uri_get_uri (GstURIHandler * handler)
 {
-  return g_printf ("%s://", ASSET_URI_STR);
+  return g_strdup_printf ("%s://", ASSET_URI_STR);
 }
 
+// static gboolean
+// gst_assets_video_src_uri_set_uri (GstURIHandler * handler, const gchar * uri,
+//     GError ** error)
+// {
+//   return (uri != NULL && g_str_has_prefix (uri, ASSET_URI_STR));
+// }
+
 static gboolean
-gst_assets_video_src_uri_set_uri (GstURIHandler * handler, const gchar * uri,
-    GError ** error)
+gst_assets_video_src_uri_set_uri (GstURIHandler * handler, const gchar * uri, GError ** error)
 {
-  return (uri != NULL && g_str_has_prefix (uri, ASSET_URI_STR));
+  GstElement *self = GST_ELEMENT(handler);
+
+  if (!uri || !g_str_has_prefix(uri, "assets://"))
+    return FALSE;
+
+  // convert "assets://file.mp4" → "file:///opt/app/assets/file.mp4"
+  const gchar *filename = uri + strlen("assets://");
+  gchar *real_uri = g_strdup_printf("file:///opt/app/assets/%s", filename);
+  g_object_set(self, "location", real_uri, NULL);
+  g_free(real_uri);
+  return TRUE;
 }
+
 
 static void
 gst_assets_video_src_uri_handler_init (gpointer g_iface, gpointer iface_data)
@@ -112,10 +130,78 @@ gst_assets_video_src_init (GstRedVideoSrc * src)
 {
 }
 
-
-
-int main(int argc, char const *argv[])
+static gboolean
+plugin_init (GstPlugin * plugin)
 {
-    /* code */
+  if (!gst_element_register (plugin, "redvideosrc", GST_RANK_PRIMARY,
+          gst_assets_video_src_get_type ())) {
+    return FALSE;
+  }
+  return TRUE;
+}
+
+
+#define PACKAGE "RedVideoSrc"
+
+GST_PLUGIN_DEFINE
+    (GST_VERSION_MAJOR,
+    GST_VERSION_MINOR,
+    redvideosrc,
+    "Red Video Source",
+    plugin_init,
+    "1.0", "LGPL", "GStreamer", "http://gstreamer.net/")
+
+
+
+int main(int argc, char *argv[]) {
+    GstElement *pipeline;
+    GError *error = NULL;
+
+    gst_init(&argc, &argv);
+
+    if (!gst_plugin_register_static(GST_VERSION_MAJOR, GST_VERSION_MINOR,
+    "redvideosrc", "Red Video Source", plugin_init,
+    "1.0", "LGPL", "GStreamer", "http://gstreamer.net/", "source"))
+    {
+        g_printerr("Failed to register redvideosrc plugin\n");
+        return -1;
+    }
+
+    if (argc != 2) {
+        g_printerr("Usage: %s assets://filename\n", argv[0]);
+        return -1;
+    }
+
+    gchar *uri = argv[1];
+    pipeline = gst_element_make_from_uri(GST_URI_SRC, uri, "source", &error);
+    if (!pipeline) {
+        g_printerr("Could not create source from URI: %s\n", error->message);
+        g_clear_error(&error);
+        return -1;
+    }
+
+    gchar *pipeline_desc = g_strdup_printf("uridecodebin uri=%s ! autovideosink", uri);
+    pipeline = gst_parse_launch(pipeline_desc, &error);
+    if (!pipeline) {
+        g_printerr("Pipeline creation failed: %s\n", error->message);
+        g_clear_error(&error);
+        return -1;
+    }
+    g_free(pipeline_desc);
+
+    gst_element_set_state(pipeline, GST_STATE_PLAYING);
+    g_print("Playing %s\n", uri);
+
+    GstBus *bus = gst_element_get_bus(pipeline);
+    GstMessage *msg = gst_bus_timed_pop_filtered(bus, GST_CLOCK_TIME_NONE,
+                                                 GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
+
+    if (msg != NULL)
+        gst_message_unref(msg);
+
+    gst_object_unref(bus);
+    gst_element_set_state(pipeline, GST_STATE_NULL);
+    gst_object_unref(pipeline);
+
     return 0;
 }

@@ -1,3 +1,3 @@
-option('executable', type : 'combo', value : 'browse', 
-       choices : ['browse', 'gst_custom_uri', 'both'],
-       description : 'Choisir quel exécutable compiler: browse, gst_custom_uri, ou both')
+option('executable', type : 'combo', value : 'gst_custom_uri', 
+       choices : ['browse', 'gst_custom_uri'],
+       description : 'Choose which executable to build (default: gst_custom_uri)')
