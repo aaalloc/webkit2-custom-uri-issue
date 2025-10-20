@@ -268,3 +268,5 @@ main (gint   argc,
 
   return 0;
 }
+
+// https://gstreamer.freedesktop.org/documentation/application-development/highlevel/playback-components.html?gi-language=c
