@@ -38,6 +38,16 @@
       "postRunCommands": [
         "target symbols add /home/yanovskyy/Documents/builds/gstreamer-1.26.6/builddir/subprojects/gst-plugins-base/gst/playback/libgstplayback.so"
       ]
+    },
+    {
+      "name": "Simple launch debug",
+      "type": "lldb-dap",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/gst_custom_uri",
+      "args": ["/home/yanovskyy/Documents/projects/gtkbrowser/1900.mp3"],
+      "postRunCommands": [
+        "target symbols add /home/yanovskyy/Documents/builds/gstreamer-1.26.6/builddir/subprojects/gst-plugins-base/gst/playback/libgstplayback.so"
+      ]
     }
   ]
 }

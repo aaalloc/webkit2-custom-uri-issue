@@ -1,186 +1,20 @@
 #include <gst/check/gstcheck.h>
 #include <gst/base/gstpushsrc.h>
 #include <gst/gst.h>
+#include "gst_assets.h"
 
 // https://gstreamer.freedesktop.org/documentation/tutorials/basic/dynamic-pipelines.html?gi-language=c
 
-#define ASSET_URI_STR "assets"
-
-GstElement *pipeline, *sink;
-
-
-static GstURIType
-gst_assets_video_src_uri_get_type (GType type)
-{
-  return GST_URI_SRC;
-}
-
-static const gchar *const *
-gst_assets_video_src_uri_get_protocols (GType type)
-{
-  static const gchar *protocols[] = { ASSET_URI_STR, NULL };
-
-  return protocols;
-}
-
-static gchar *
-gst_assets_video_src_uri_get_uri (GstURIHandler * handler)
-{
-  return g_strdup_printf ("%s://", ASSET_URI_STR);
-}
-
-// static gboolean
-// gst_assets_video_src_uri_set_uri (GstURIHandler * handler, const gchar * uri,
-//     GError ** error)
-// {
-//   return (uri != NULL && g_str_has_prefix (uri, ASSET_URI_STR));
-// }
-
-static gboolean
-gst_assets_video_src_uri_set_uri (GstURIHandler * handler, const gchar * uri, GError ** error)
-{
-  GstElement *self = GST_ELEMENT(handler);
-
-  if (!uri || !g_str_has_prefix(uri, "assets://"))
-    return FALSE;
-
-  return TRUE;
-}
+G_DEFINE_TYPE (GstAssets, gst_assets, GST_TYPE_ELEMENT);
+GST_ELEMENT_REGISTER_DEFINE(assets, "assets", GST_RANK_NONE, GST_TYPE_ASSETS);
 
 
-static void
-gst_assets_video_src_uri_handler_init (gpointer g_iface, gpointer iface_data)
-{
-  GstURIHandlerInterface *iface = (GstURIHandlerInterface *) g_iface;
-
-  iface->get_type = gst_assets_video_src_uri_get_type;
-  iface->get_protocols = gst_assets_video_src_uri_get_protocols;
-  iface->get_uri = gst_assets_video_src_uri_get_uri;
-  iface->set_uri = gst_assets_video_src_uri_set_uri;
-}
-
-static void
-gst_assets_video_src_init_type (GType type)
-{
-  static const GInterfaceInfo uri_hdlr_info = {
-    gst_assets_video_src_uri_handler_init, NULL, NULL
-  };
-
-  g_type_add_interface_static (type, GST_TYPE_URI_HANDLER, &uri_hdlr_info);
-}
-
-typedef GstPushSrc GstRedVideoSrc;
-typedef GstPushSrcClass GstRedVideoSrcClass;
-
-G_DEFINE_TYPE_WITH_CODE (GstRedVideoSrc, gst_assets_video_src,
-    GST_TYPE_PUSH_SRC, gst_assets_video_src_init_type (g_define_type_id));
-
-static GstFlowReturn
-gst_assets_video_src_create (GstPushSrc * src, GstBuffer ** p_buf)
-{
-  // TODO: goal here is just get buffer from pad
-  return GST_FLOW_OK;
-}
-
-static GstCaps *
-gst_assets_video_src_get_caps (GstBaseSrc * src, GstCaps * filter)
-{
-  return gst_caps_new_any();
-}
-
-static void
-gst_assets_video_src_class_init (GstRedVideoSrcClass * klass)
-{
-  GstPushSrcClass *pushsrc_class = GST_PUSH_SRC_CLASS (klass);
-  GstBaseSrcClass *basesrc_class = GST_BASE_SRC_CLASS (klass);
-  static GstStaticPadTemplate src_templ = GST_STATIC_PAD_TEMPLATE ("src",
-      GST_PAD_SRC, GST_PAD_ALWAYS,
-      GST_STATIC_CAPS ("video/x-raw, format=(string)I420")
-      );
-  GstElementClass *element_class = GST_ELEMENT_CLASS (klass);
-
-  gst_element_class_add_static_pad_template (element_class, &src_templ);
-  gst_element_class_set_metadata (element_class,
-      "Red Video Src", "Source/Video", "yep", "me");
-
-  pushsrc_class->create = gst_assets_video_src_create;
-  basesrc_class->get_caps = gst_assets_video_src_get_caps;
-}
-
-static void
-gst_assets_video_src_init (GstRedVideoSrc * src)
-{
-}
-
-static gboolean
-plugin_init (GstPlugin * plugin)
-{
-  if (!gst_element_register (plugin, "assetsrc", GST_RANK_PRIMARY,
-          gst_assets_video_src_get_type ())) {
-    return FALSE;
-  }
-  return TRUE;
-}
-
-
-#define PACKAGE "CustomUriProxy"
-
-GST_PLUGIN_DEFINE
-    (GST_VERSION_MAJOR,
-    GST_VERSION_MINOR,
-    assetsrc,
-    "Plugin proxy PoC",
-    plugin_init,
-    "1.0", "LGPL", "GStreamer", "http://gstreamer.net/")
-
-
-
-static void
-cb_pad_added (GstElement *dec,
-          GstPad     *pad,
-          gpointer    data)
-{
-  GstCaps *caps;
-  GstStructure *str;
-  const gchar *name;
-  GstPadTemplate *templ;
-  GstElementClass *klass;
-
-  /* check media type */
-  caps = gst_pad_query_caps (pad, NULL);
-  str = gst_caps_get_structure (caps, 0);
-  name = gst_structure_get_name (str);
-
-  klass = GST_ELEMENT_GET_CLASS (sink);
-
-  if (g_str_has_prefix (name, "audio")) {
-    templ = gst_element_class_get_pad_template (klass, "audio_sink");
-  } else if (g_str_has_prefix (name, "video")) {
-    templ = gst_element_class_get_pad_template (klass, "video_sink");
-  } else if (g_str_has_prefix (name, "text")) {
-    templ = gst_element_class_get_pad_template (klass, "text_sink");
-  } else {
-    templ = NULL;
-  }
-
-  if (templ) {
-    GstPad *sinkpad;
-
-    sinkpad = gst_element_request_pad (sink, templ, NULL, NULL);
-
-    if (!gst_pad_is_linked (sinkpad))
-      gst_pad_link (pad, sinkpad);
-
-    gst_object_unref (sinkpad);
-  }
-
-  gst_clear_caps (&caps);
-}
-static GMainLoop *loop;
+GstElement *sink = NULL;
 
 static gboolean
 my_bus_callback (GstBus * bus, GstMessage * message, gpointer data)
 {
+  GMainLoop *loop = (GMainLoop *)data;
   // g_print ("Got %s message\n", GST_MESSAGE_TYPE_NAME (message));
   GError *err;
   gchar *debug;
@@ -217,12 +51,118 @@ my_bus_callback (GstBus * bus, GstMessage * message, gpointer data)
   return TRUE;
 }
 
+static void
+cb_pad_added (GstElement *dec,
+          GstPad     *pad,
+          gpointer    data)
+{
+  // GstElement *ssink = (GstElement*)data;
+  GstCaps *caps;
+  GstStructure *str;
+  const gchar *name;
+  GstPadTemplate *templ;
+  GstElementClass *klass;
+
+  /* check media type */
+  caps = gst_pad_query_caps (pad, NULL);
+  str = gst_caps_get_structure (caps, 0);
+  name = gst_structure_get_name (str);
+
+  klass = GST_ELEMENT_GET_CLASS (sink);
+
+  if (g_str_has_prefix (name, "audio")) {
+    templ = gst_element_class_get_pad_template (klass, "audio_sink");
+  } else if (g_str_has_prefix (name, "video")) {
+    templ = gst_element_class_get_pad_template (klass, "video_sink");
+  } else if (g_str_has_prefix (name, "text")) {
+    templ = gst_element_class_get_pad_template (klass, "text_sink");
+  } else {
+    templ = NULL;
+  }
+
+  if (templ) {
+    GstPad *sinkpad;
+
+    sinkpad = gst_element_request_pad (sink, templ, NULL, NULL);
+
+    if (!gst_pad_is_linked (sinkpad))
+      gst_pad_link (pad, sinkpad);
+
+    gst_object_unref (sinkpad);
+  }
+
+  gst_clear_caps (&caps);
+}
+
+
+
+static void
+gst_assets_init(GstAssets * self)
+{
+  // gst_assets_src_init_type (GST_TYPE_ASSETS);
+}
+
+static void
+gst_assets_class_init (GstAssetsClass * self)
+{
+  GstElementClass *element_class = GST_ELEMENT_CLASS (self);
+  GObjectClass *gobject_class = G_OBJECT_CLASS (self);
+
+
+  gobject_class->set_property = gst_assets_set_property;
+  gobject_class->get_property = gst_assets_get_property;
+
+
+  g_object_class_install_property (gobject_class, 1,
+    g_param_spec_pointer ("main-loop",
+                          "Main Loop",
+                          "External or internal GMainLoop used by the plugin",
+                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+
+  g_object_class_install_property (gobject_class, 2,
+    g_param_spec_pointer ("main-pipeline",
+                          "Main Pipeline",
+                          "External or internal GstPipeline used by the plugin",
+                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+
+  gst_element_class_set_static_metadata (element_class,
+    "Assets plugins proxy Poc",
+    "Example/FirstExample",
+    "Goal to proxy custom URI",
+    "Alexander Yanovskyy");
+
+}
+
+
+static gboolean
+plugin_init (GstPlugin *plugin)
+{
+  return GST_ELEMENT_REGISTER (assets, plugin);
+}
+
+#define PACKAGE "AssetsPoC"
+#define VERSION "1.0"
+GST_PLUGIN_DEFINE (
+  GST_VERSION_MAJOR,
+  GST_VERSION_MINOR,
+  assets,
+  "Plugin proxy PoC",
+  plugin_init,
+  VERSION,
+  "LGPL",
+  "GStreamer",
+  "http://gstreamer.net/"
+)
+
+
+
+
 gint
 main (gint   argc,
       gchar *argv[])
 {
-  GstElement *dec;
-  GstBus *bus;
 
   /* init GStreamer */
   gst_init (&argc, &argv);
@@ -235,7 +175,6 @@ main (gint   argc,
       return -1;
   }
 
-  loop = g_main_loop_new (NULL, FALSE);
 
   /* make sure we have input */
   if (argc != 2) {
@@ -243,28 +182,47 @@ main (gint   argc,
     return -1;
   }
 
-  /* setup */
-  pipeline = gst_pipeline_new ("pipeline");
+  // self->pipeline = gst_pipeline_new ("pipeline");
 
-  bus = gst_pipeline_get_bus (GST_PIPELINE (pipeline));
+  // self->dec = gst_element_factory_make ("uridecodebin", "source");
+  // g_object_set (G_OBJECT (self->dec), "uri", "file:///home/yanovskyy/Vidéos/Via_mivvies_TT.mov", NULL);
+  // g_signal_connect (self->dec, "pad-added", G_CALLBACK (cb_pad_added), NULL);
+
+  // self->sink = gst_element_factory_make ("playsink", "sink");
+  // gst_bin_add_many (GST_BIN (self->pipeline), self->dec, self->sink, NULL);
+
+  // self->bus = gst_pipeline_get_bus (GST_PIPELINE (self->pipeline));
+  // gst_bus_add_watch (self->bus, my_bus_callback, self->loop);
+  // gst_object_unref (self->bus);
+  GMainLoop *loop = g_main_loop_new (NULL, FALSE);
+
+
+  GstElement *pipeline = gst_pipeline_new ("pipeline");
+  GstBus *bus = gst_pipeline_get_bus (GST_PIPELINE (pipeline));
   gst_bus_add_watch (bus, my_bus_callback, loop);
   gst_object_unref (bus);
 
-  dec = gst_element_factory_make ("uridecodebin", "source");
-  g_object_set (G_OBJECT (dec), "uri", argv[1], NULL);
-  g_signal_connect (dec, "pad-added", G_CALLBACK (cb_pad_added), NULL);
 
-  /* create audio output */
-  sink = gst_element_factory_make ("playsink", "sink");
-  gst_bin_add_many (GST_BIN (pipeline), dec, sink, NULL);
+  GstElement *source = gst_element_factory_make("uridecodebin", "source");
+  g_object_set (G_OBJECT (source), "uri", argv[1], NULL);
+  g_signal_connect (source, "pad-added", G_CALLBACK (cb_pad_added), sink);
+  
 
-  /* run */
+  sink = gst_element_factory_make("playsink", "sink");
+  gst_bin_add_many (GST_BIN (pipeline), source, sink, NULL);
+
+
+
+
+  // GstElement *src = gst_element_factory_make("assetsrc", NULL);
+
+
   gst_element_set_state (pipeline, GST_STATE_PLAYING);
   g_main_loop_run (loop);
 
-  /* cleanup */
   gst_element_set_state (pipeline, GST_STATE_NULL);
   gst_object_unref (GST_OBJECT (pipeline));
+
 
   return 0;
 }
