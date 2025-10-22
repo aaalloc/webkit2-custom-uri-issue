@@ -5,11 +5,12 @@
 
 // https://gstreamer.freedesktop.org/documentation/tutorials/basic/dynamic-pipelines.html?gi-language=c
 
-G_DEFINE_TYPE (GstAssets, gst_assets, GST_TYPE_ELEMENT);
+
+// G_DEFINE_TYPE (GstAssets, gst_assets, GST_TYPE_ELEMENT);
+
 GST_ELEMENT_REGISTER_DEFINE(assets, "assets", GST_RANK_NONE, GST_TYPE_ASSETS);
 
 
-GstElement *sink = NULL;
 
 static gboolean
 my_bus_callback (GstBus * bus, GstMessage * message, gpointer data)
@@ -56,7 +57,7 @@ cb_pad_added (GstElement *dec,
           GstPad     *pad,
           gpointer    data)
 {
-  // GstElement *ssink = (GstElement*)data;
+  GstElement *ssink = (GstElement*)data;
   GstCaps *caps;
   GstStructure *str;
   const gchar *name;
@@ -68,7 +69,7 @@ cb_pad_added (GstElement *dec,
   str = gst_caps_get_structure (caps, 0);
   name = gst_structure_get_name (str);
 
-  klass = GST_ELEMENT_GET_CLASS (sink);
+  klass = GST_ELEMENT_GET_CLASS (ssink);
 
   if (g_str_has_prefix (name, "audio")) {
     templ = gst_element_class_get_pad_template (klass, "audio_sink");
@@ -83,7 +84,7 @@ cb_pad_added (GstElement *dec,
   if (templ) {
     GstPad *sinkpad;
 
-    sinkpad = gst_element_request_pad (sink, templ, NULL, NULL);
+    sinkpad = gst_element_request_pad (ssink, templ, NULL, NULL);
 
     if (!gst_pad_is_linked (sinkpad))
       gst_pad_link (pad, sinkpad);
@@ -96,44 +97,7 @@ cb_pad_added (GstElement *dec,
 
 
 
-static void
-gst_assets_init(GstAssets * self)
-{
-  // gst_assets_src_init_type (GST_TYPE_ASSETS);
-}
 
-static void
-gst_assets_class_init (GstAssetsClass * self)
-{
-  GstElementClass *element_class = GST_ELEMENT_CLASS (self);
-  GObjectClass *gobject_class = G_OBJECT_CLASS (self);
-
-
-  gobject_class->set_property = gst_assets_set_property;
-  gobject_class->get_property = gst_assets_get_property;
-
-
-  g_object_class_install_property (gobject_class, 1,
-    g_param_spec_pointer ("main-loop",
-                          "Main Loop",
-                          "External or internal GMainLoop used by the plugin",
-                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-
-  g_object_class_install_property (gobject_class, 2,
-    g_param_spec_pointer ("main-pipeline",
-                          "Main Pipeline",
-                          "External or internal GstPipeline used by the plugin",
-                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-
-  gst_element_class_set_static_metadata (element_class,
-    "Assets plugins proxy Poc",
-    "Example/FirstExample",
-    "Goal to proxy custom URI",
-    "Alexander Yanovskyy");
-
-}
 
 
 static gboolean
@@ -182,18 +146,6 @@ main (gint   argc,
     return -1;
   }
 
-  // self->pipeline = gst_pipeline_new ("pipeline");
-
-  // self->dec = gst_element_factory_make ("uridecodebin", "source");
-  // g_object_set (G_OBJECT (self->dec), "uri", "file:///home/yanovskyy/Vidéos/Via_mivvies_TT.mov", NULL);
-  // g_signal_connect (self->dec, "pad-added", G_CALLBACK (cb_pad_added), NULL);
-
-  // self->sink = gst_element_factory_make ("playsink", "sink");
-  // gst_bin_add_many (GST_BIN (self->pipeline), self->dec, self->sink, NULL);
-
-  // self->bus = gst_pipeline_get_bus (GST_PIPELINE (self->pipeline));
-  // gst_bus_add_watch (self->bus, my_bus_callback, self->loop);
-  // gst_object_unref (self->bus);
   GMainLoop *loop = g_main_loop_new (NULL, FALSE);
 
 
@@ -202,23 +154,23 @@ main (gint   argc,
   gst_bus_add_watch (bus, my_bus_callback, loop);
   gst_object_unref (bus);
 
+  GstElement *sink = gst_element_factory_make("playsink", "sink");
 
   GstElement *source = gst_element_factory_make("uridecodebin", "source");
   g_object_set (G_OBJECT (source), "uri", argv[1], NULL);
   g_signal_connect (source, "pad-added", G_CALLBACK (cb_pad_added), sink);
   
-
-  sink = gst_element_factory_make("playsink", "sink");
   gst_bin_add_many (GST_BIN (pipeline), source, sink, NULL);
 
 
-
-
-  // GstElement *src = gst_element_factory_make("assetsrc", NULL);
+  GstElement *src = gst_element_factory_make("assets", NULL);
+  g_object_set (G_OBJECT(src), "main-loop", loop, NULL);
+  g_object_set (G_OBJECT(src), "main-pipeline", pipeline, NULL);
 
 
   gst_element_set_state (pipeline, GST_STATE_PLAYING);
   g_main_loop_run (loop);
+
 
   gst_element_set_state (pipeline, GST_STATE_NULL);
   gst_object_unref (GST_OBJECT (pipeline));

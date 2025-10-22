@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        ".als.json": "jsonc",
         "*.tsx": "typescriptreact",
         "*.y": "yacc",
         "*.sh": "jinja-shell",
@@ -10,7 +11,9 @@
         "gst.h": "c",
         "glib.h": "c",
         "garray.h": "c",
-        "galloca.h": "c"
+        "galloca.h": "c",
+        "format": "c",
+        "gst_assets.h": "c"
     },
     "C_Cpp.default.compileCommands": "/home/yanovskyy/Documents/projects/gtkbrowser/builddir/compile_commands.json",
     "C_Cpp.default.configurationProvider": "mesonbuild.mesonbuild"
