@@ -30,37 +30,6 @@ GST_ELEMENT_REGISTER_DECLARE(assets)
 
 #define ASSET_URI_STR "assets"
 
-// static void gst_assets_set_property(GObject *object, guint prop_id,
-//                                     const GValue *value, GParamSpec *pspec)
-// {
-//     GstAssets *self = GST_ASSETS(object);
-//     switch (prop_id)
-//     {
-//     case 1:
-//         self->url_str = g_value_get_pointer(value);
-//         break;
-//     default:
-//         G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
-//         break;
-//     }
-// }
-
-// static void gst_assets_get_property(GObject *object, guint prop_id,
-//                                     GValue *value, GParamSpec *pspec)
-// {
-//     GstAssets *self = GST_ASSETS(object);
-
-//     switch (prop_id)
-//     {
-//     case 1:
-//         g_value_set_pointer(value, self->url_str);
-//         break;
-//     default:
-//         G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
-//         break;
-//     }
-// }
-
 static GstURIType gst_assets_uri_get_type(GType type) { return GST_URI_SRC; }
 
 static const gchar *const *gst_assets_uri_get_protocols(GType type)
@@ -147,15 +116,7 @@ static void gst_assets_class_init(GstAssetsClass *self)
     GstElementClass *element_class = GST_ELEMENT_CLASS(self);
     GObjectClass *gobject_class = G_OBJECT_CLASS(self);
 
-    // gobject_class->set_property = gst_assets_set_property;
-    // gobject_class->get_property = gst_assets_get_property;
     gobject_class->finalize = gst_assets_finalize;
-
-    // g_object_class_install_property(
-    //     gobject_class, 1,
-    //     g_param_spec_pointer("uri", "URI",
-    //                          "External or internal URI used by the plugin",
-    //                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
     gst_element_class_set_static_metadata(
         element_class, "Assets plugins proxy Poc", "Example/FirstExample",
