@@ -13,7 +13,9 @@
         "garray.h": "c",
         "galloca.h": "c",
         "format": "c",
-        "gst_assets.h": "c"
+        "gst_assets.h": "c",
+        "iomanip": "c",
+        "istream": "c"
     },
     "C_Cpp.default.compileCommands": "/home/yanovskyy/Documents/projects/gtkbrowser/builddir/compile_commands.json",
     "C_Cpp.default.configurationProvider": "mesonbuild.mesonbuild"
