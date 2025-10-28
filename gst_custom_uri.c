@@ -1,4 +1,4 @@
-#include "gst_assets.h"
+#include "gstassettauri.h"
 #include <gst/base/gstpushsrc.h>
 #include <gst/check/gstcheck.h>
 #include <gst/gst.h>
@@ -6,19 +6,6 @@
 // https://gstreamer.freedesktop.org/documentation/tutorials/basic/dynamic-pipelines.html?gi-language=c
 
 // G_DEFINE_TYPE(GstAssets, gst_assets, GST_TYPE_ELEMENT);
-
-GST_ELEMENT_REGISTER_DEFINE(assets, "assets", GST_RANK_NONE, GST_TYPE_ASSETS);
-
-static gboolean plugin_init(GstPlugin *plugin)
-{
-    return GST_ELEMENT_REGISTER(assets, plugin);
-}
-
-#define PACKAGE "AssetsPoC"
-#define VERSION "1.0"
-GST_PLUGIN_DEFINE(GST_VERSION_MAJOR, GST_VERSION_MINOR, assets,
-                  "Plugin proxy PoC", plugin_init, VERSION, "LGPL", "GStreamer",
-                  "http://gstreamer.net/")
 
 static void cb_pad_added(GstElement *dec, GstPad *pad, gpointer data)
 {

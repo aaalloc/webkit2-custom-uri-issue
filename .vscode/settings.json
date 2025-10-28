@@ -15,7 +15,8 @@
         "format": "c",
         "gst_assets.h": "c",
         "iomanip": "c",
-        "istream": "c"
+        "istream": "c",
+        "gstassettauri.h": "c"
     },
     "C_Cpp.default.compileCommands": "/home/yanovskyy/Documents/projects/gtkbrowser/builddir/compile_commands.json",
     "C_Cpp.default.configurationProvider": "mesonbuild.mesonbuild"

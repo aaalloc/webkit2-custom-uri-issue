@@ -1,55 +1,30 @@
-#pragma once
+#include "gstassettauri.h"
 
 #include <gst/base/gstpushsrc.h>
 #include <gst/check/gstcheck.h>
 #include <gst/gst.h>
 
-GType gst_assets_get_type(void);
-
-#define GST_TYPE_ASSETS (gst_assets_get_type())
-#define GST_ASSETS(obj)                                                        \
-    (G_TYPE_CHECK_INSTANCE_CAST((obj), GST_TYPE_ASSETS, GstAssets))
-#define GST_ASSETS_CLASS(klass)                                                \
-    (G_TYPE_CHECK_CLASS_CAST((klass), GST_TYPE_ASSETS, GstAssetsClass))
-#define GST_IS_ASSETS(obj) (G_TYPE_CHECK_INSTANCE_TYPE((obj), GST_TYPE_ASSETS))
-#define GST_IS_ASSETS_CLASS(klass)                                             \
-    (G_TYPE_CHECK_CLASS_TYPE((klass), GST_TYPE_ASSETS))
-
-typedef struct _GstAssets
+static GstURIType gst_asset_tauriuri_get_type(GType type)
 {
-    GstBin parent_instance;
-    GstElement *internal_src;
-} GstAssets;
+    return GST_URI_SRC;
+}
 
-typedef struct _GstAssetsClass
-{
-    GstBinClass parent_class;
-} GstAssetsClass;
-
-GST_ELEMENT_REGISTER_DECLARE(assets)
-
-#define ASSET_URI_STR "assets"
-
-static GstURIType gst_assets_uri_get_type(GType type) { return GST_URI_SRC; }
-
-static const gchar *const *gst_assets_uri_get_protocols(GType type)
+static const gchar *const *gst_asset_tauriuri_get_protocols(GType type)
 {
     static const gchar *protocols[] = {ASSET_URI_STR, NULL};
 
     return protocols;
 }
 
-static gchar *gst_assets_uri_get_uri(GstURIHandler *handler)
+static gchar *gst_asset_tauriuri_get_uri(GstURIHandler *handler)
 {
     return g_strdup_printf("%s://", ASSET_URI_STR);
 }
 
-#include <stdio.h>
-
-static gboolean gst_assets_uri_set_uri(GstURIHandler *handler, const gchar *uri,
-                                       GError **error)
+static gboolean gst_asset_tauriuri_set_uri(GstURIHandler *handler,
+                                           const gchar *uri, GError **error)
 {
-    GstAssets *self = GST_ASSETS(handler);
+    GstTauriAsset *self = GST_ASSETS(handler);
 
     gchar *path = gst_uri_get_location(uri);
     if (!path)
@@ -85,24 +60,25 @@ static gboolean gst_assets_uri_set_uri(GstURIHandler *handler, const gchar *uri,
     return TRUE;
 }
 
-static void gst_assets_uri_handler_init(gpointer g_iface, gpointer iface_data)
+static void gst_asset_tauriuri_handler_init(gpointer g_iface,
+                                            gpointer iface_data)
 {
     GstURIHandlerInterface *iface = (GstURIHandlerInterface *)g_iface;
 
-    iface->get_type = gst_assets_uri_get_type;
-    iface->get_protocols = gst_assets_uri_get_protocols;
-    iface->get_uri = gst_assets_uri_get_uri;
-    iface->set_uri = gst_assets_uri_set_uri;
+    iface->get_type = gst_asset_tauriuri_get_type;
+    iface->get_protocols = gst_asset_tauriuri_get_protocols;
+    iface->get_uri = gst_asset_tauriuri_get_uri;
+    iface->set_uri = gst_asset_tauriuri_set_uri;
 }
 
-static void gst_assets_init(GstAssets *self)
+static void gst_asset_tauriinit(GstTauriAsset *self)
 {
     ///
 }
 
-static void gst_assets_finalize(GObject *object)
+static void gst_asset_taurifinalize(GObject *object)
 {
-    GstAssets *self = GST_ASSETS(object);
+    GstTauriAsset *self = GST_ASSETS(object);
 
     if (self->internal_src)
     {
@@ -111,44 +87,50 @@ static void gst_assets_finalize(GObject *object)
     }
 }
 
-static void gst_assets_class_init(GstAssetsClass *self)
+static void gst_asset_tauriclass_init(GstTauriAssetClass *self)
 {
     GstElementClass *element_class = GST_ELEMENT_CLASS(self);
     GObjectClass *gobject_class = G_OBJECT_CLASS(self);
 
-    gobject_class->finalize = gst_assets_finalize;
+    gobject_class->finalize = gst_asset_taurifinalize;
 
     gst_element_class_set_static_metadata(
         element_class, "Assets plugins proxy Poc", "Example/FirstExample",
         "Goal to proxy custom URI", "Alexander Yanovskyy");
 }
 
-GType gst_assets_get_type(void)
+GType gst_asset_tauriget_type(void)
 {
     static GType assets_type = 0;
 
     if (!assets_type)
     {
         static const GTypeInfo assets_info = {
-            sizeof(GstAssetsClass),
+            sizeof(GstTauriAssetClass),
             NULL, /* base_init */
             NULL, /* base_finalize */
-            (GClassInitFunc)gst_assets_class_init,
+            (GClassInitFunc)gst_asset_tauriclass_init,
             NULL, /* class_finalize */
             NULL, /* class_data */
-            sizeof(GstAssets),
+            sizeof(GstTauriAsset),
             0, /* n_preallocs */
-            (GInstanceInitFunc)gst_assets_init,
+            (GInstanceInitFunc)gst_asset_tauriinit,
             NULL};
 
         static const GInterfaceInfo uri_hdlr_info = {
-            gst_assets_uri_handler_init, NULL, NULL};
+            gst_asset_tauriuri_handler_init, NULL, NULL};
 
-        assets_type =
-            g_type_register_static(GST_TYPE_BIN, "GstAssets", &assets_info, 0);
+        assets_type = g_type_register_static(GST_TYPE_BIN, "GstTauriAsset",
+                                             &assets_info, 0);
         g_type_add_interface_static(assets_type, GST_TYPE_URI_HANDLER,
                                     &uri_hdlr_info);
     }
 
     return assets_type;
 }
+
+#define PACKAGE "_asset_tauri_"
+#define VERSION "1.0"
+GST_PLUGIN_DEFINE(GST_VERSION_MAJOR, GST_VERSION_MINOR, assettauri,
+                  "Plugin proxy PoC", plugin_init, VERSION, "LGPL",
+                  "gst_asset_tauri_package", "http://gstreamer.net/")
